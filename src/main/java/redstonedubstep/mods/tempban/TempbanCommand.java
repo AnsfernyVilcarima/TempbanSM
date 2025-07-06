@@ -18,13 +18,12 @@ import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.commands.arguments.MessageArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentUtils;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.UserBanList;
 import net.minecraft.server.players.UserBanListEntry;
 
 public class TempbanCommand {
-	private static final SimpleCommandExceptionType ERROR_ALREADY_BANNED = new SimpleCommandExceptionType(new TranslatableComponent("commands.ban.failed"));
+	private static final SimpleCommandExceptionType ERROR_ALREADY_BANNED = new SimpleCommandExceptionType(Component.literal("§cEl jugador ya está baneado"));
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(Commands.literal("tempban").requires((player) -> player.hasPermission(3))
@@ -51,10 +50,10 @@ public class TempbanCommand {
 				UserBanListEntry profilebanentry = new UserBanListEntry(gameprofile, null, source.getTextName(), date, reason == null ? null : reason.getString());
 				banlist.add(profilebanentry);
 				++i;
-				source.sendSuccess(new TranslatableComponent("Banned %s for %s months, %s days and %s hours: %s", ComponentUtils.getDisplayName(gameprofile), monthDuration, dayDuration, hourDuration, profilebanentry.getReason()), true);
+				source.sendSuccess(() -> Component.literal("§a✅ Jugador " + ComponentUtils.getDisplayName(gameprofile).getString() + " baneado por " + monthDuration + " meses, " + dayDuration + " días y " + hourDuration + " horas. Razón: " + profilebanentry.getReason()), true);
 				ServerPlayer serverplayer = source.getServer().getPlayerList().getPlayer(gameprofile.getId());
 				if (serverplayer != null) {
-					serverplayer.connection.disconnect(new TranslatableComponent("multiplayer.disconnect.banned"));
+					serverplayer.connection.disconnect(Component.literal("§6⏰ Tiempo de juego completado\n§fDebes esperar antes de reconectarte.\n§fTiempo restante: §a" + getTimeString(monthDuration, dayDuration, hourDuration) + "\n§b¡Gracias por jugar responsablemente!"));
 				}
 			}
 		}
@@ -64,5 +63,13 @@ public class TempbanCommand {
 		} else {
 			return i;
 		}
+	}
+	
+	private static String getTimeString(int months, int days, int hours) {
+		StringBuilder time = new StringBuilder();
+		if (months > 0) time.append(months).append(" meses ");
+		if (days > 0) time.append(days).append(" días ");
+		if (hours > 0) time.append(hours).append(" horas");
+		return time.toString().trim();
 	}
 }

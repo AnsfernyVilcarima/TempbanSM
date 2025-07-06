@@ -9,8 +9,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.players.BanListEntry;
 import net.minecraft.server.players.PlayerList;
 
@@ -30,18 +29,19 @@ public class BetterBanListCommand {
 
 	private static int showList(CommandSourceStack source, Collection<? extends BanListEntry<?>> banListEntries) {
 		if (banListEntries.isEmpty()) {
-			source.sendSuccess(new TranslatableComponent("commands.banlist.none"), false);
+			source.sendSuccess(() -> Component.literal("§aNo hay jugadores baneados"), false);
 		} else {
-			source.sendSuccess(new TranslatableComponent("commands.banlist.list", banListEntries.size()), false);
+			source.sendSuccess(() -> Component.literal("§e📋 Lista de baneados (" + banListEntries.size() + " total):"), false);
 
 			for(BanListEntry<?> entry : banListEntries) {
-				TranslatableComponent entryComponent = new TranslatableComponent("commands.banlist.entry", entry.getDisplayName(), entry.getSource(), entry.getReason());
+				Component entryComponent = Component.literal("§f• " + entry.getDisplayName() + " §7por " + entry.getSource() + " - §6" + entry.getReason());
 
 				if (entry.getExpires() != null) {
-					entryComponent.append(new TextComponent(" (" + entry.getCreated() + " - " + entry.getExpires() + ")").withStyle(ChatFormatting.GRAY));
+					entryComponent = entryComponent.copy().append(Component.literal(" §8(" + entry.getCreated() + " - " + entry.getExpires() + ")").withStyle(ChatFormatting.GRAY));
 				}
 
-				source.sendSuccess(entryComponent, false);
+				final Component finalComponent = entryComponent;
+				source.sendSuccess(() -> finalComponent, false);
 			}
 		}
 

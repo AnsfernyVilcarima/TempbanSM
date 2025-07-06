@@ -18,15 +18,14 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.MessageArgument;
 import net.minecraft.commands.arguments.selector.EntitySelector;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.server.commands.BanIpCommands;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.IpBanList;
 import net.minecraft.server.players.IpBanListEntry;
 
 public class TempbanIpCommand {
-	private static final SimpleCommandExceptionType ERROR_INVALID_IP = new SimpleCommandExceptionType(new TranslatableComponent("commands.banip.invalid"));
-	private static final SimpleCommandExceptionType FAILED_EXCEPTION = new SimpleCommandExceptionType(new TranslatableComponent("commands.banip.failed"));
+	private static final SimpleCommandExceptionType ERROR_INVALID_IP = new SimpleCommandExceptionType(Component.literal("§cDirección IP inválida"));
+	private static final SimpleCommandExceptionType FAILED_EXCEPTION = new SimpleCommandExceptionType(Component.literal("§cNo se pudo banear la IP (ya está baneada)"));
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(Commands.literal("tempban-ip").requires(p -> p.hasPermission(3))
@@ -67,16 +66,24 @@ public class TempbanIpCommand {
 			List<ServerPlayer> list = source.getServer().getPlayerList().getPlayersWithAddress(ip);
 			IpBanListEntry ipbanentry = new IpBanListEntry(ip,null, source.getTextName(), date, reason == null ? null : reason.getString());
 			ipbanlist.add(ipbanentry);
-			source.sendSuccess(new TranslatableComponent("Banned %s for %s months, %s days and %s hours: %s", ip, monthDuration, dayDuration, hourDuration, ipbanentry.getReason()), true);
+			source.sendSuccess(() -> Component.literal("§a✅ IP " + ip + " baneada por " + monthDuration + " meses, " + dayDuration + " días y " + hourDuration + " horas. Razón: " + ipbanentry.getReason()), true);
 			if (!list.isEmpty()) {
-				source.sendSuccess(new TranslatableComponent("commands.banip.info", list.size(), EntitySelector.joinNames(list)), true);
+				source.sendSuccess(() -> Component.literal("§e📢 " + list.size() + " jugadores fueron afectados: " + EntitySelector.joinNames(list).getString()), true);
 			}
 
 			for(ServerPlayer serverplayerentity : list) {
-				serverplayerentity.connection.disconnect(new TranslatableComponent("multiplayer.disconnect.ip_banned"));
+				serverplayerentity.connection.disconnect(Component.literal("§6⏰ Tiempo de juego completado\n§fDebes esperar antes de reconectarte.\n§fTiempo restante: §a" + getTimeString(monthDuration, dayDuration, hourDuration) + "\n§b¡Gracias por jugar responsablemente!"));
 			}
 
 			return list.size();
 		}
+	}
+	
+	private static String getTimeString(int months, int days, int hours) {
+		StringBuilder time = new StringBuilder();
+		if (months > 0) time.append(months).append(" meses ");
+		if (days > 0) time.append(days).append(" días ");
+		if (hours > 0) time.append(hours).append(" horas");
+		return time.toString().trim();
 	}
 }
