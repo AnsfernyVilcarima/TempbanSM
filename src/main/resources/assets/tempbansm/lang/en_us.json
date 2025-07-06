@@ -1,5 +1,8 @@
 {
-  "itemGroup.tempbansm": "Example Mod Tab",
-  "block.tempbansm.example_block": "Example Block",
-  "item.tempbansm.example_item": "Example Item"
+  "tempbansm.command.tempban.success": "§a✅ Jugador %s baneado temporalmente por %s. Razón: %s",
+  "tempbansm.command.tempban.already_banned": "§cEl jugador ya está baneado",
+  "tempbansm.command.tempban.invalid_duration": "§cDebe especificar al menos 1 hora, día o mes",
+  "tempbansm.command.banlist.empty": "§aNo hay jugadores baneados",
+  "tempbansm.command.banlist.header": "§e📋 Lista de baneados (%d total):",
+  "tempbansm.disconnect.tempban": "§6⏰ Tiempo de juego completado\n§fDebes esperar antes de reconectarte.\n§fTiempo restante: §a%s\n§b¡Gracias por jugar responsablemente!"
 }

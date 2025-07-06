@@ -1,6 +1,7 @@
+
 {
     "pack": {
-        "description": "tempban resources",
-        "pack_format": 6
+        "description": "Recursos del mod TempbanSM - Baneos temporales en español",
+        "pack_format": 15
     }
 }

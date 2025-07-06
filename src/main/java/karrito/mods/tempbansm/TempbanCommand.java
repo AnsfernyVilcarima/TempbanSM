@@ -25,6 +25,9 @@ public class TempbanCommand {
     private static final SimpleCommandExceptionType ERROR_ALREADY_BANNED =
             new SimpleCommandExceptionType(Component.literal("§cEl jugador ya está baneado"));
 
+    private static final SimpleCommandExceptionType ERROR_INVALID_DURATION =
+            new SimpleCommandExceptionType(Component.literal("§cDebe especificar al menos 1 hora, día o mes"));
+
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("tempban")
                 .requires(source -> source.hasPermission(3))
@@ -38,18 +41,28 @@ public class TempbanCommand {
     }
 
     private static int tempbanPlayers(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        return tempbanPlayers(
-                ctx.getSource(),
-                GameProfileArgument.getGameProfiles(ctx, "targets"),
-                IntegerArgumentType.getInteger(ctx, "months"),
-                IntegerArgumentType.getInteger(ctx, "days"),
-                IntegerArgumentType.getInteger(ctx, "hours"),
-                MessageArgument.getMessage(ctx, "reason")
-        );
+        Collection<GameProfile> targets = GameProfileArgument.getGameProfiles(ctx, "targets");
+        int months = IntegerArgumentType.getInteger(ctx, "months");
+        int days = IntegerArgumentType.getInteger(ctx, "days");
+        int hours = IntegerArgumentType.getInteger(ctx, "hours");
+
+        Component reason = null;
+        try {
+            reason = MessageArgument.getMessage(ctx, "reason");
+        } catch (IllegalArgumentException e) {
+            // No reason provided, use default
+        }
+
+        return tempbanPlayers(ctx.getSource(), targets, months, days, hours, reason);
     }
 
     private static int tempbanPlayers(CommandSourceStack source, Collection<GameProfile> toBeBanned,
                                       int monthDuration, int dayDuration, int hourDuration, Component reason) throws CommandSyntaxException {
+
+        // Validar que al menos uno de los valores de tiempo sea mayor que 0
+        if (monthDuration == 0 && dayDuration == 0 && hourDuration == 0) {
+            throw ERROR_INVALID_DURATION.create();
+        }
 
         UserBanList banlist = source.getServer().getPlayerList().getBans();
         int bannedCount = 0;
@@ -68,28 +81,26 @@ public class TempbanCommand {
                         null,
                         source.getTextName(),
                         banExpiry,
-                        reason == null ? null : reason.getString()
+                        reason == null ? "Baneo temporal" : reason.getString()
                 );
 
                 banlist.add(banEntry);
                 bannedCount++;
 
-                // Mensaje de confirmación para el admin - CORREGIDO
+                // Mensaje de confirmación para el admin
                 String playerName = gameprofile.getName();
+                String timeString = getTimeString(monthDuration, dayDuration, hourDuration);
                 source.sendSuccess(() -> Component.literal(
                         "§a✅ Jugador " + playerName +
-                                " baneado por " + monthDuration + " meses, " + dayDuration + " días y " +
-                                hourDuration + " horas. Razón: " + banEntry.getReason()
+                                " baneado temporalmente por " + timeString +
+                                ". Razón: " + banEntry.getReason()
                 ), true);
 
                 // Desconectar al jugador si está online
                 ServerPlayer serverplayer = source.getServer().getPlayerList().getPlayer(gameprofile.getId());
                 if (serverplayer != null) {
                     serverplayer.connection.disconnect(Component.literal(
-                            "§6⏰ Tiempo de juego completado\n" +
-                                    "§fDebes esperar antes de reconectarte.\n" +
-                                    "§fTiempo restante: §a" + getTimeString(monthDuration, dayDuration, hourDuration) + "\n" +
-                                    "§b¡Gracias por jugar responsablemente!"
+                            Config.tempbanMessage.replace("{tiempo}", timeString)
                     ));
                 }
             }
@@ -104,9 +115,9 @@ public class TempbanCommand {
 
     private static String getTimeString(int months, int days, int hours) {
         StringBuilder time = new StringBuilder();
-        if (months > 0) time.append(months).append(" meses ");
-        if (days > 0) time.append(days).append(" días ");
-        if (hours > 0) time.append(hours).append(" horas");
+        if (months > 0) time.append(months).append(" mes").append(months > 1 ? "es" : "").append(" ");
+        if (days > 0) time.append(days).append(" día").append(days > 1 ? "s" : "").append(" ");
+        if (hours > 0) time.append(hours).append(" hora").append(hours > 1 ? "s" : "");
         return time.toString().trim();
     }
 }

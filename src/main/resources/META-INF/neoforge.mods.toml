@@ -5,20 +5,20 @@ license="MIT"
 [[mods]]
 modId="tempbansm"
 version="${mod_version}"
-displayName="TempbanSM"
-description="Un mod que agrega comandos de baneo temporal con mensajes personalizados."
-authors="AnsfernyVilcarima"
+displayName="${mod_name}"
+description="${mod_description}"
+authors="${mod_authors}"
 
 [[dependencies.tempbansm]]
 modId="neoforge"
 type="required"
-versionRange="[21.1.0,)"
+versionRange="${neo_version_range}"
 ordering="NONE"
 side="BOTH"
 
 [[dependencies.tempbansm]]
 modId="minecraft"
 type="required"
-versionRange="[1.21.1,1.22)"
+versionRange="${minecraft_version_range}"
 ordering="NONE"
 side="BOTH"
