@@ -16,6 +16,9 @@ public class Tempbansm {
         // Registrar configuración
         modContainer.registerConfig(ModConfig.Type.SERVER, Config.SPEC);
 
+        // Registrar listener de configuración
+        modEventBus.addListener(Config::onLoad);
+
         // Registrar el evento de comandos
         NeoForge.EVENT_BUS.addListener(this::registerCommands);
     }
