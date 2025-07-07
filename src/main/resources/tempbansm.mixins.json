@@ -4,6 +4,7 @@
   "package": "karrito.mods.tempbansm.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "LoginMixin"
   ],
   "client": [
   ],
