@@ -21,12 +21,15 @@ public class Tempbansm {
 
         // Registrar el evento de comandos
         NeoForge.EVENT_BUS.addListener(this::registerCommands);
+
+        System.out.println("TempbanSM: Mod cargado correctamente - SIN MIXIN");
     }
 
     public void registerCommands(RegisterCommandsEvent event) {
         if (event.getCommandSelection() != Commands.CommandSelection.INTEGRATED) {
             TempbanCommand.register(event.getDispatcher());
             BetterBanListCommand.register(event.getDispatcher());
+            System.out.println("TempbanSM: Comandos registrados correctamente");
         }
     }
 }

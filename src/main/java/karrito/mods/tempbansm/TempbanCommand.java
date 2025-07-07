@@ -2,6 +2,7 @@ package karrito.mods.tempbansm;
 
 import java.util.Collection;
 import java.util.Date;
+import java.text.SimpleDateFormat;
 
 import org.apache.commons.lang3.time.DateUtils;
 
@@ -76,12 +77,17 @@ public class TempbanCommand {
 
         for (GameProfile gameprofile : toBeBanned) {
             if (!banlist.isBanned(gameprofile)) {
+                String timeString = getTimeString(monthDuration, dayDuration, hourDuration);
+
+                // CREAR MENSAJE PERSONALIZADO PARA EL BANEO
+                String customBanMessage = createCustomLoginMessage(banExpiry, timeString, reason);
+
                 UserBanListEntry banEntry = new UserBanListEntry(
                         gameprofile,
                         null,
                         source.getTextName(),
                         banExpiry,
-                        reason == null ? "Baneo temporal" : reason.getString()
+                        customBanMessage  // Usar nuestro mensaje personalizado
                 );
 
                 banlist.add(banEntry);
@@ -89,18 +95,20 @@ public class TempbanCommand {
 
                 // Mensaje de confirmación para el admin
                 String playerName = gameprofile.getName();
-                String timeString = getTimeString(monthDuration, dayDuration, hourDuration);
                 source.sendSuccess(() -> Component.literal(
                         "§a✅ Jugador " + playerName +
                                 " baneado temporalmente por " + timeString +
-                                ". Razón: " + banEntry.getReason()
+                                ". Razón: " + (reason == null ? "Baneo temporal" : reason.getString())
                 ), true);
 
                 // Desconectar al jugador si está online
                 ServerPlayer serverplayer = source.getServer().getPlayerList().getPlayer(gameprofile.getId());
                 if (serverplayer != null) {
                     serverplayer.connection.disconnect(Component.literal(
-                            Config.tempbanMessage.replace("{tiempo}", timeString)
+                            "§6⏰ Tiempo de juego completado\n" +
+                                    "§fDebes esperar antes de reconectarte.\n" +
+                                    "§fTiempo restante: §a" + timeString + "\n" +
+                                    "§b¡Gracias por jugar responsablemente!"
                     ));
                 }
             }
@@ -111,6 +119,52 @@ public class TempbanCommand {
         }
 
         return bannedCount;
+    }
+
+    private static String createCustomLoginMessage(Date expiry, String timeString, Component reason) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
+        StringBuilder message = new StringBuilder();
+
+        // Header simple pero elegante
+        message.append("§6✨ SpecialMon ✨\n");
+        message.append("§b⏰ Tiempo de Descanso ⏰\n\n");
+
+        // Información de la sesión
+        message.append("§aInformación de la Sesión\n");
+        message.append("§7Tiempo restante: §e").append(timeString).append("\n");
+        message.append("§7Fecha de regreso: §b").append(dateFormat.format(expiry)).append("\n");
+        message.append("§7Hora de regreso: §a").append(timeFormat.format(expiry)).append("\n");
+
+        if (reason != null && !reason.getString().equals("Baneo temporal")) {
+            message.append("§7Motivo: §e").append(reason.getString()).append("\n");
+        }
+        message.append("\n");
+
+        // Tips de salud aleatorios
+        String[] healthTips = {
+                "💧 Mantente hidratado bebiendo agua",
+                "👀 Descansa la vista mirando a lo lejos",
+                "🤸 Estira el cuerpo y muévete un poco",
+                "🌿 Respira aire fresco si es posible",
+                "😊 Relájate y disfruta tu descanso",
+                "🧠 Dale descanso a tu mente",
+                "🍎 Aprovecha para comer algo saludable",
+                "💤 Un buen descanso mejora tu rendimiento",
+                "🎵 Escucha música relajante",
+                "📚 Lee algo interesante"
+        };
+
+        // Seleccionar tip aleatorio
+        int tipIndex = (int) (System.currentTimeMillis() / 60000) % healthTips.length;
+        message.append("§a💡 Consejo saludable:\n");
+        message.append("§f").append(healthTips[tipIndex]).append("\n\n");
+
+        // Mensaje final
+        message.append("§7Gracias por jugar en §6✨ SpecialMon ✨\n");
+        message.append("§d♡ §b¡Cuídate y regresa pronto! §d♡");
+
+        return message.toString();
     }
 
     private static String getTimeString(int months, int days, int hours) {
