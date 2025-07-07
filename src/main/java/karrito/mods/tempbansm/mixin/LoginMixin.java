@@ -1,75 +1,82 @@
 package karrito.mods.tempbansm.mixin;
 
-import com.mojang.authlib.GameProfile;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
-import net.minecraft.server.players.UserBanListEntry;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 @Mixin(ServerLoginPacketListenerImpl.class)
 public class LoginMixin {
 
-    @Shadow @Final private MinecraftServer server;
-    @Shadow private GameProfile gameProfile;
+    @ModifyArg(method = "disconnect", at = @At("HEAD"), index = 0)
+    private Component tempbansm$modifyDisconnectMessage(Component originalMessage) {
+        String messageText = originalMessage.getString();
 
-    @Inject(method = "checkBan", at = @At("HEAD"), cancellable = true)
-    private void tempbansm$customBanMessage(CallbackInfoReturnable<Component> cir) {
-        if (this.gameProfile != null && this.server != null) {
-            UserBanListEntry banEntry = this.server.getPlayerList().getBans().get(this.gameProfile);
+        // Log para debug
+        System.out.println("TempbanSM: Interceptando mensaje de disconnect: " + messageText);
 
-            if (banEntry != null) {
-                String customMessage = tempbansm$createCustomBanMessage(banEntry);
-                cir.setReturnValue(Component.literal(customMessage));
-            }
+        // Verificar si es un mensaje de baneo
+        if (tempbansm$isBanMessage(messageText)) {
+            System.out.println("TempbanSM: Mensaje de baneo detectado, aplicando personalización");
+            return tempbansm$createCustomBanMessage(messageText);
         }
+
+        return originalMessage;
     }
 
     @Unique
-    private String tempbansm$createCustomBanMessage(UserBanListEntry banEntry) {
-        StringBuilder message = new StringBuilder();
-        message.append("§6⏰ Tiempo de juego completado\n");
-        message.append("§fDebes esperar antes de reconectarte.\n");
+    private boolean tempbansm$isBanMessage(String message) {
+        boolean isBan = message.contains("banned") ||
+                message.contains("You are banned") ||
+                message.contains("baneado") ||
+                message.contains("Reason:") ||
+                message.contains("Your ban will be removed") ||
+                message.contains("until") ||
+                message.contains("Baneo temporal") ||
+                message.toLowerCase().contains("ban");
 
-        if (banEntry.getExpires() != null) {
-            // Calcular tiempo restante
-            long timeLeft = banEntry.getExpires().getTime() - System.currentTimeMillis();
-            if (timeLeft > 0) {
-                String timeLeftStr = tempbansm$getTimeLeftString(timeLeft);
-                message.append("§fTiempo restante: §a").append(timeLeftStr).append("\n");
-            } else {
-                message.append("§fTiempo restante: §aExpirado\n");
-            }
-        } else {
-            message.append("§fTipo: §cBaneo permanente\n");
-        }
-
-        message.append("§b¡Gracias por jugar responsablemente!");
-
-        return message.toString();
+        System.out.println("TempbanSM: ¿Es mensaje de baneo? " + isBan + " - Mensaje: " + message);
+        return isBan;
     }
 
     @Unique
-    private String tempbansm$getTimeLeftString(long timeLeftMs) {
-        long seconds = timeLeftMs / 1000;
-        long minutes = seconds / 60;
-        long hours = minutes / 60;
-        long days = hours / 24;
+    private Component tempbansm$createCustomBanMessage(String originalMessage) {
+        StringBuilder customMessage = new StringBuilder();
+        customMessage.append("§6⏰ Tiempo de juego completado\n");
+        customMessage.append("§fDebes esperar antes de reconectarte.\n");
 
-        if (days > 0) {
-            return days + " día" + (days > 1 ? "s" : "");
-        } else if (hours > 0) {
-            return hours + " hora" + (hours > 1 ? "s" : "");
-        } else if (minutes > 0) {
-            return minutes + " minuto" + (minutes > 1 ? "s" : "");
-        } else {
-            return "menos de 1 minuto";
+        // Intentar extraer información de tiempo del mensaje original
+        String timeInfo = tempbansm$extractTimeFromMessage(originalMessage);
+        if (!timeInfo.isEmpty()) {
+            customMessage.append("§fTiempo restante: §a").append(timeInfo).append("\n");
+        }
+
+        customMessage.append("§b¡Gracias por jugar responsablemente!");
+
+        System.out.println("TempbanSM: Mensaje personalizado creado: " + customMessage.toString());
+
+        return Component.literal(customMessage.toString());
+    }
+
+    @Unique
+    private String tempbansm$extractTimeFromMessage(String message) {
+        try {
+            // Buscar el patrón específico del mensaje que vemos
+            if (message.contains("will be removed on")) {
+                String[] parts = message.split("will be removed on");
+                if (parts.length > 1) {
+                    String datePart = parts[1].trim();
+                    return datePart; // Devolver la fecha completa
+                }
+            }
+
+            return "";
+
+        } catch (Exception e) {
+            System.out.println("TempbanSM: Error extrayendo tiempo: " + e.getMessage());
+            return "";
         }
     }
 }
